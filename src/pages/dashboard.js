@@ -18,23 +18,33 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const { users, loginsByDate, activeToday, activeThisMonth } =
-      generateMockUserData();
-    const sevenDaysAgo = new Date();
-    console.log(sevenDaysAgo);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const refreshStats = () => {
+      const data = generateMockUserData();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const inactiveUsers = users.filter(
-      (user) => new Date(user.lastLogin) < sevenDaysAgo
-    );
+      const inactiveUsers = data.users.filter(
+        (user) => new Date(user.lastLogin) < sevenDaysAgo
+      );
 
-    setStats({
-      totalUsers: users.length,
-      inactiveUsers,
-      loginsByDate,
-      activeToday,
-      activeThisMonth,
-    });
+      setStats({
+        totalUsers: data.users.length,
+        inactiveUsers,
+        loginsByDate: data.loginsByDate,
+        activeToday: data.activeToday,
+        activeThisMonth: data.activeThisMonth,
+      });
+    };
+
+    // Initial load
+    refreshStats();
+
+    // Listen for storage changes
+    window.addEventListener("storage", refreshStats);
+
+    return () => {
+      window.removeEventListener("storage", refreshStats);
+    };
   }, []);
   return (
     <ProtectedRoute>

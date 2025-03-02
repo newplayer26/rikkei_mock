@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import DashboardLayout from "@/components/DashboardLayout";
 import generateMockUserData from "@/utils/mockData";
 import { ChevronDownIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-
+import { useRouter } from "next/router";
 export default function Dashboard2() {
-  const [users] = useState(generateMockUserData().users);
+  const router = useRouter();
+  const [users, setUsers] = useState([]);
 
+  useEffect(() => {
+    // Initial load of users
+    const data = generateMockUserData();
+    setUsers(data.users);
+
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      const data = generateMockUserData();
+      setUsers(data.users);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
   const handleAddUser = () => {
-    console.log("Add user clicked");
+    router.push("/users/new");
     // Implement add user functionality
   };
   const getDeviceIcon = (device) => {
@@ -28,6 +43,13 @@ export default function Dashboard2() {
     }
   };
 
+  const handleToggleActive = (userId) => {
+    const updatedUsers = users.map((user) =>
+      user.id === userId ? { ...user, active: !user.active } : user
+    );
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+  };
   const ActionMenu = ({ user }) => (
     <Menu as="div" className="relative inline-block text-left">
       <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -44,29 +66,29 @@ export default function Dashboard2() {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute right-0 w-56 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <Menu.Items className="absolute right-0 w-56 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
           <div className="py-1">
             <Menu.Item>
               {({ active }) => (
                 <button
-                  onClick={() => console.log("View details", user)}
+                  onClick={() => handleToggleActive(user.id)}
                   className={`${
                     active ? "bg-gray-100 text-gray-900" : "text-gray-700"
                   } block px-4 py-2 text-sm w-full text-left`}
                 >
-                  View details
+                  {user.active ? "Set as Inactive" : "Set as Active"}
                 </button>
               )}
             </Menu.Item>
             <Menu.Item>
               {({ active }) => (
                 <button
-                  onClick={() => console.log("Edit details", user)}
+                  onClick={() => router.push(`/users/edit/${user.id}`)}
                   className={`${
                     active ? "bg-gray-100 text-gray-900" : "text-gray-700"
                   } block px-4 py-2 text-sm w-full text-left`}
                 >
-                  Edit details
+                  Edit user
                 </button>
               )}
             </Menu.Item>
@@ -128,6 +150,12 @@ export default function Dashboard2() {
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
                       Actions
                     </th>
                   </tr>
@@ -145,6 +173,7 @@ export default function Dashboard2() {
                           {new Date(user.lastLogin).toLocaleString()}
                         </div>
                       </td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           <span className="mr-2">
@@ -152,6 +181,17 @@ export default function Dashboard2() {
                           </span>
                           {user.device}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.active
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {user.active ? "Active" : "Inactive"}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <ActionMenu user={user} />
